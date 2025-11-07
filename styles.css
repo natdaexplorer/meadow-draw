@@ -1,0 +1,8 @@
+html,body{height:100%;margin:0;font-family:system-ui,Segoe UI,Roboto}
+#canvas{display:block; width:100vw; height:100vh; touch-action: none; background: linear-gradient(#bfe7a9, #eaf8ff);}
+#ui{
+  position:fixed; left:8px; top:8px; z-index:10;
+  background:rgba(255,255,255,0.9); padding:8px; border-radius:8px;
+  display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+}
+#status{font-size:0.85rem; color:#333}
