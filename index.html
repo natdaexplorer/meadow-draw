@@ -1,9 +1,12 @@
 <canvas id="pondCanvas"></canvas>
 <script>
+window.onload = () => {
   const canvas = document.getElementById("pondCanvas");
   const ctx = canvas.getContext("2d");
   const pond = new Image();
-  pond.src = "9c7f8f38-fc15-4bf9-885c-348e7d9a2190.png"; // your uploaded pond image
+  
+  // Correct image path
+  pond.src = "./images/pond.png";
 
   function resizeCanvas() {
     canvas.width = window.innerWidth;
@@ -14,14 +17,19 @@
   resizeCanvas();
 
   pond.onload = () => {
+    console.log("Pond loaded successfully!");
     animate();
+  };
+
+  pond.onerror = () => {
+    console.error("Failed to load pond image. Check the file path.");
   };
 
   function animate() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const { width, height } = canvas;
 
-    // background: light cream color
+    // Background: light cream color
     ctx.fillStyle = "#FFF9F0";
     ctx.fillRect(0, 0, width, height);
 
@@ -35,8 +43,8 @@
       pondWidth = pondHeight * ratio;
     }
 
-    // Floating side position (slightly left)
-    const offsetX = width * 0.25;
+    // Floating side position (more to the left for interactive frame)
+    const offsetX = width * 0.15; // shifted further left
     const offsetY = height / 2 - pondHeight / 2 + Math.sin(Date.now() / 1000) * 8;
 
     // Slight vibrant effect
@@ -46,4 +54,5 @@
 
     requestAnimationFrame(animate);
   }
+};
 </script>
