@@ -1,32 +1,40 @@
-import { createClient } from '@vercel/kv';
+import { Redis } from '@vercel/kv';
 
-let kv;
+let redis;
 try {
-  kv = createClient({
+  redis = new Redis({
     url: process.env.KV_REST_API_URL,
     token: process.env.KV_REST_API_TOKEN,
   });
 } catch (error) {
-  console.error('Failed to create KV client:', error);
+  console.error('Failed to create Redis client:', error);
 }
 
 export default async function handler(req, res) {
-  if (!kv) {
-    return res.status(500).json({ error: 'Database not available' });
+  // Enable CORS
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
+  if (!redis) {
+    return res.status(200).json({ success: false, error: 'Database not available' });
   }
 
   if (req.method === 'POST') {
     try {
       const newDrawing = req.body;
-      const drawings = await kv.get('pond_drawings') || [];
+      const drawings = (await redis.get('pond_drawings')) || [];
       drawings.push(newDrawing);
-      await kv.set('pond_drawings', drawings);
+      await redis.set('pond_drawings', drawings);
       
-      res.setHeader('Access-Control-Allow-Origin', '*');
       res.status(200).json({ success: true });
     } catch (error) {
       console.error('Error adding drawing:', error);
-      res.status(500).json({ error: 'Failed to add drawing' });
+      res.status(200).json({ success: false, error: 'Failed to add drawing' });
     }
   } else {
     res.setHeader('Allow', ['POST']);
