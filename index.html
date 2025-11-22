@@ -4,10 +4,14 @@
 <meta charset="UTF-8">
 <title>Nat's Pondering Pond</title>
 <link href="https://fonts.googleapis.com/css2?family=Delius&display=swap" rel="stylesheet">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
 <style>
 * {
     box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 body {
@@ -20,12 +24,17 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    position: fixed;
+    width: 100%;
+    height: 100%;
 }
 
 /* Header */
 .header {
     padding: 15px 0;
     flex-shrink: 0;
+    position: relative;
+    z-index: 10;
 }
 
 h1 {
@@ -46,6 +55,7 @@ h1 {
     max-width: 1200px;
     margin: 0 auto;
     flex: 1;
+    width: 100%;
 }
 
 /* Pond Section - Centered and larger */
@@ -56,11 +66,16 @@ h1 {
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    position: relative;
 }
 
 .pond-wrapper {
     position: relative;
     width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .pond {
@@ -68,6 +83,7 @@ h1 {
     max-width: 700px;
     animation: float 4s ease-in-out infinite;
     transform-origin: center;
+    pointer-events: none;
 }
 
 @keyframes float {
@@ -79,11 +95,22 @@ h1 {
     }
 }
 
+.drawing-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
 .drawing-container img {
     position: absolute;
     width: 60px;
     transform: translate(-50%, -50%) scale(0);
     animation: pop 1.5s ease-out forwards, float-with-pond 4s ease-in-out infinite;
+    pointer-events: auto;
+    z-index: 2;
 }
 
 @keyframes pop {
@@ -187,6 +214,7 @@ h1 {
     border: 2px dashed #444;
     cursor: crosshair;
     touch-action: none;
+    display: block;
 }
 
 /* Redo button inside canvas */
@@ -205,6 +233,7 @@ h1 {
     justify-content: center;
     font-size: 16px;
     transition: all 0.2s;
+    z-index: 100;
 }
 
 .redo-button:hover {
@@ -230,6 +259,8 @@ button {
     background: #FFF9F0;
     transition: transform 0.2s, background 0.3s;
     width: 160px;
+    -webkit-appearance: none;
+    appearance: none;
 }
 
 button:hover {
@@ -260,11 +291,28 @@ button:hover {
     align-items: center;
     gap: 6px;
     transition: transform 0.2s, background 0.3s;
+    z-index: 100;
 }
 
 .gallery-link:hover {
     transform: scale(1.03);
     background: #e8f4ea;
+}
+
+/* Instagram-specific fixes */
+.instagram-warning {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: #ffeb3b;
+    color: #333;
+    padding: 10px;
+    text-align: center;
+    font-size: 14px;
+    z-index: 1000;
+    border-bottom: 1px solid #ffc107;
 }
 
 /* Mobile Styles */
@@ -275,10 +323,11 @@ button:hover {
         flex-direction: column;
         height: 100vh;
         overflow: hidden;
+        position: fixed;
     }
     
     .header {
-        padding: 15px 0;
+        padding: 10px 0;
         flex-shrink: 0;
         height: 12vh;
         display: flex;
@@ -346,7 +395,7 @@ button:hover {
         left: 0;
         right: 0;
         bottom: 0;
-        z-index: 10;
+        z-index: 100;
         justify-content: center;
         align-items: center;
     }
@@ -384,6 +433,8 @@ button:hover {
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
+        -webkit-appearance: none;
+        appearance: none;
     }
     
     .mobile-main-button:hover {
@@ -448,6 +499,11 @@ button:hover {
     .adding-message {
         font-size: 14px;
     }
+    
+    /* Instagram-specific mobile fixes */
+    .instagram-warning {
+        display: block;
+    }
 }
 
 @media (max-width: 480px) {
@@ -496,6 +552,7 @@ button:hover {
     width: auto;
     padding: 5px;
     display: none;
+    z-index: 101;
 }
 
 .close-tools:hover {
@@ -516,10 +573,24 @@ button:hover {
         display: none !important;
     }
 }
+
+/* Enhanced touch targets for Instagram */
+.instagram-touch-fix {
+    position: relative;
+}
+
+.instagram-touch-fix * {
+    -webkit-tap-highlight-color: transparent;
+}
 </style>
 </head>
 
-<body>
+<body class="instagram-touch-fix">
+
+<!-- Instagram Warning -->
+<div class="instagram-warning" id="instagramWarning">
+    ⚠️ For best experience, open in Safari/Chrome. Tap drawings 3 times to delete.
+</div>
 
 <!-- Header -->
 <div class="header">
@@ -579,6 +650,19 @@ button:hover {
 <a href="gallery.html" class="gallery-link">🖼️ Gallery of Lost & Found</a>
 
 <script>
+// Detect Instagram browser
+function isInstagramBrowser() {
+    return /Instagram/.test(navigator.userAgent);
+}
+
+// Show warning if in Instagram
+if (isInstagramBrowser()) {
+    document.getElementById('instagramWarning').style.display = 'block';
+    setTimeout(() => {
+        document.getElementById('instagramWarning').style.display = 'none';
+    }, 5000);
+}
+
 // DRAWING LOGIC
 const canvas = document.getElementById("draw-area");
 const ctx = canvas.getContext("2d");
@@ -586,13 +670,17 @@ const ctx = canvas.getContext("2d");
 // Set canvas size based on device
 function setupCanvas() {
     if (window.innerWidth <= 768) {
-        // Mobile
+        // Mobile - use fixed pixel sizes for Instagram
         canvas.width = 250;
         canvas.height = 250;
+        canvas.style.width = '250px';
+        canvas.style.height = '250px';
     } else {
         // Desktop
         canvas.width = 200;
         canvas.height = 200;
+        canvas.style.width = '200px';
+        canvas.style.height = '200px';
     }
     
     // Set initial canvas background
@@ -622,18 +710,19 @@ function selectColor(color, element) {
     element.classList.add('selected');
 }
 
-// Mouse events for desktop
+// Enhanced touch/mouse events for Instagram
 canvas.addEventListener("mousedown", startDrawing);
 canvas.addEventListener("mouseup", stopDrawing);
 canvas.addEventListener("mouseout", stopDrawing);
 canvas.addEventListener("mousemove", draw);
 
-// Touch events for mobile
+// More aggressive touch event handling for Instagram
 canvas.addEventListener("touchstart", handleTouchStart, { passive: false });
 canvas.addEventListener("touchmove", handleTouchMove, { passive: false });
-canvas.addEventListener("touchend", handleTouchEnd);
+canvas.addEventListener("touchend", handleTouchEnd, { passive: false });
 
 function startDrawing(e) {
+    e.preventDefault();
     drawing = true;
     hasDrawing = true;
     ctx.beginPath();
@@ -649,6 +738,7 @@ function stopDrawing() {
 
 function draw(e) {
     if (!drawing) return;
+    e.preventDefault();
     
     const pos = getMousePos(e);
     
@@ -675,12 +765,12 @@ function getMousePos(e) {
     const scaleY = canvas.height / rect.height;
     
     return {
-        x: x * scaleX,
-        y: y * scaleY
+        x: Math.max(0, Math.min(canvas.width, x * scaleX)),
+        y: Math.max(0, Math.min(canvas.height, y * scaleY))
     };
 }
 
-// Touch event handlers
+// Touch event handlers with Instagram fixes
 function handleTouchStart(e) {
     e.preventDefault();
     drawing = true;
@@ -689,7 +779,8 @@ function handleTouchStart(e) {
     const touch = e.touches[0];
     const mouseEvent = new MouseEvent("mousedown", {
         clientX: touch.clientX,
-        clientY: touch.clientY
+        clientY: touch.clientY,
+        bubbles: true
     });
     canvas.dispatchEvent(mouseEvent);
 }
@@ -699,14 +790,17 @@ function handleTouchMove(e) {
     const touch = e.touches[0];
     const mouseEvent = new MouseEvent("mousemove", {
         clientX: touch.clientX,
-        clientY: touch.clientY
+        clientY: touch.clientY,
+        bubbles: true
     });
     canvas.dispatchEvent(mouseEvent);
 }
 
 function handleTouchEnd(e) {
     e.preventDefault();
-    const mouseEvent = new MouseEvent("mouseup", {});
+    const mouseEvent = new MouseEvent("mouseup", {
+        bubbles: true
+    });
     canvas.dispatchEvent(mouseEvent);
 }
 
@@ -782,14 +876,14 @@ function showAddingMessage() {
     animateDots();
 }
 
-// Get random position within the pond boundaries
+// Get random position within the pond boundaries - FIXED for Instagram
 function getRandomPondPosition() {
-    // More precise pond boundaries to keep drawings inside
+    // Much tighter boundaries for Instagram
     const pondArea = {
-        left: 15,    // Reduced from 20
-        right: 85,   // Reduced from 80  
-        top: 20,     // Reduced from 25
-        bottom: 80   // Reduced from 75
+        left: 20,    // Increased for Instagram
+        right: 80,   // Reduced for Instagram  
+        top: 25,     // Increased for Instagram
+        bottom: 75   // Reduced for Instagram
     };
     
     return {
@@ -890,7 +984,7 @@ async function addToPond() {
     }
 }
 
-// Add a single drawing to the pond
+// Add a single drawing to the pond - ENHANCED for Instagram
 function addSingleDrawing(item) {
     const container = document.getElementById("pondDrawings");
     
@@ -904,46 +998,47 @@ function addSingleDrawing(item) {
     img.style.left = item.x + "%";
     img.style.top = item.y + "%";
     img.setAttribute('data-id', item.id);
+    img.style.pointerEvents = 'auto';
+    img.style.cursor = 'pointer';
     
-    // Add click/tap handler for deletion (3 clicks/taps) - FOR BOTH DESKTOP AND MOBILE
-    let clickCount = 0;
-    let lastClickTime = 0;
+    // Enhanced deletion for Instagram - more reliable touch handling
+    let tapCount = 0;
+    let lastTapTime = 0;
+    let tapTimeout;
     
-    img.addEventListener('click', function(e) {
+    function handleDeletionTap(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
         const currentTime = new Date().getTime();
+        const timeDiff = currentTime - lastTapTime;
         
-        // Reset click count if it's been more than 1 second since last click
-        if (currentTime - lastClickTime > 1000) {
-            clickCount = 0;
+        // Reset if too much time passed
+        if (timeDiff > 1000) {
+            tapCount = 0;
         }
         
-        clickCount++;
-        lastClickTime = currentTime;
+        tapCount++;
+        lastTapTime = currentTime;
         
-        if (clickCount >= 3) {
+        // Clear any existing timeout
+        if (tapTimeout) clearTimeout(tapTimeout);
+        
+        // Set timeout to reset counter
+        tapTimeout = setTimeout(() => {
+            tapCount = 0;
+        }, 1000);
+        
+        if (tapCount >= 3) {
             deleteDrawing(item.id);
-            clickCount = 0;
+            tapCount = 0;
+            if (tapTimeout) clearTimeout(tapTimeout);
         }
-    });
+    }
     
-    // Also add touch event for mobile to ensure it works reliably
-    img.addEventListener('touchstart', function(e) {
-        e.preventDefault(); // Prevent default touch behavior
-        const currentTime = new Date().getTime();
-        
-        // Reset click count if it's been more than 1 second since last tap
-        if (currentTime - lastClickTime > 1000) {
-            clickCount = 0;
-        }
-        
-        clickCount++;
-        lastClickTime = currentTime;
-        
-        if (clickCount >= 3) {
-            deleteDrawing(item.id);
-            clickCount = 0;
-        }
-    });
+    // Add both click and touch events for maximum compatibility
+    img.addEventListener('click', handleDeletionTap);
+    img.addEventListener('touchstart', handleDeletionTap, { passive: false });
     
     container.appendChild(img);
     loadedDrawingIds.add(item.id);
@@ -958,7 +1053,11 @@ function deleteDrawing(id) {
     // Remove from pond display
     const img = document.querySelector(`img[data-id="${id}"]`);
     if (img) {
-        img.remove();
+        img.style.transition = 'opacity 0.3s';
+        img.style.opacity = '0';
+        setTimeout(() => {
+            img.remove();
+        }, 300);
     }
     
     loadedDrawingIds.delete(id);
@@ -1031,13 +1130,16 @@ function hideDrawingTools() {
     pondSection.classList.remove('hidden');
 }
 
-// Handle window resize
+// Handle window resize - FIXED for Instagram
 window.addEventListener('resize', function() {
     setupCanvas();
 });
 
 // Initialize
-loadPondItems();
+document.addEventListener('DOMContentLoaded', function() {
+    setupCanvas();
+    loadPondItems();
+});
 
 // Enhanced real-time updates - check for changes every second
 setInterval(syncDrawings, 1000);
@@ -1051,6 +1153,25 @@ document.addEventListener('visibilitychange', function() {
 
 // Sync when window gains focus
 window.addEventListener('focus', syncDrawings);
+
+// Prevent Instagram from interfering with touch events
+document.addEventListener('touchstart', function(e) {
+    if (e.target.tagName === 'IMG' && e.target.parentElement.id === 'pondDrawings') {
+        e.stopPropagation();
+    }
+}, true);
+
+document.addEventListener('touchmove', function(e) {
+    if (e.target.tagName === 'IMG' && e.target.parentElement.id === 'pondDrawings') {
+        e.preventDefault();
+    }
+}, { passive: false });
+
+document.addEventListener('touchend', function(e) {
+    if (e.target.tagName === 'IMG' && e.target.parentElement.id === 'pondDrawings') {
+        e.stopPropagation();
+    }
+}, true);
 </script>
 </body>
 </html>
