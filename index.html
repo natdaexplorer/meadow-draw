@@ -27,6 +27,7 @@ body {
     position: fixed;
     width: 100%;
     height: 100%;
+    touch-action: manipulation;
 }
 
 /* Header */
@@ -111,6 +112,9 @@ h1 {
     animation: pop 1.5s ease-out forwards;
     pointer-events: auto;
     z-index: 2;
+    /* Instagram-proof positioning */
+    left: 50% !important;
+    top: 50% !important;
 }
 
 @keyframes pop {
@@ -288,22 +292,6 @@ button:hover {
 .gallery-link:hover {
     transform: scale(1.03);
     background: #e8f4ea;
-}
-
-/* Instagram-specific fixes */
-.instagram-warning {
-    display: none;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    background: #ffeb3b;
-    color: #333;
-    padding: 10px;
-    text-align: center;
-    font-size: 14px;
-    z-index: 1000;
-    border-bottom: 1px solid #ffc107;
 }
 
 /* Mobile Styles */
@@ -490,11 +478,6 @@ button:hover {
     .adding-message {
         font-size: 14px;
     }
-    
-    /* Instagram-specific mobile fixes */
-    .instagram-warning {
-        display: block;
-    }
 }
 
 @media (max-width: 480px) {
@@ -573,15 +556,38 @@ button:hover {
 .instagram-touch-fix * {
     -webkit-tap-highlight-color: transparent;
 }
+
+/* Instagram-proof deletion overlay */
+.deletion-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 1000;
+    display: none;
+    justify-content: center;
+    align-items: center;
+}
+
+.deletion-confirm {
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    max-width: 300px;
+    margin: 20px;
+}
+
+.deletion-confirm button {
+    margin: 5px;
+    width: 100px;
+}
 </style>
 </head>
 
 <body class="instagram-touch-fix">
-
-<!-- Instagram Warning -->
-<div class="instagram-warning" id="instagramWarning">
-    ⚠️ For best experience, open in Safari/Chrome. Tap drawings 3 times to delete.
-</div>
 
 <!-- Header -->
 <div class="header">
@@ -640,18 +646,36 @@ button:hover {
 <!-- Gallery Link - Desktop -->
 <a href="gallery.html" class="gallery-link">🖼️ Gallery of Lost & Found</a>
 
+<!-- Instagram-proof deletion overlay -->
+<div class="deletion-overlay" id="deletionOverlay">
+    <div class="deletion-confirm">
+        <h3>Delete this drawing?</h3>
+        <p>Tap confirm to remove it from the pond</p>
+        <button onclick="confirmDeletion()">✅ Confirm</button>
+        <button onclick="cancelDeletion()">❌ Cancel</button>
+    </div>
+</div>
+
 <script>
-// Detect Instagram browser
+// Instagram-proof detection and fixes
 function isInstagramBrowser() {
     return /Instagram/.test(navigator.userAgent);
 }
 
-// Show warning if in Instagram
-if (isInstagramBrowser()) {
-    document.getElementById('instagramWarning').style.display = 'block';
-    setTimeout(() => {
-        document.getElementById('instagramWarning').style.display = 'none';
-    }, 5000);
+// Instagram-specific positioning - much tighter boundaries
+function getInstagramSafePosition() {
+    // Very conservative boundaries for Instagram
+    const pondArea = {
+        left: 25,    // Very tight boundaries
+        right: 75,   // Very tight boundaries  
+        top: 30,     // Very tight boundaries
+        bottom: 70   // Very tight boundaries
+    };
+    
+    return {
+        x: Math.random() * (pondArea.right - pondArea.left) + pondArea.left,
+        y: Math.random() * (pondArea.bottom - pondArea.top) + pondArea.top
+    };
 }
 
 // DRAWING LOGIC
@@ -661,20 +685,17 @@ const ctx = canvas.getContext("2d");
 // Set canvas size based on device
 function setupCanvas() {
     if (window.innerWidth <= 768) {
-        // Mobile - use fixed pixel sizes for Instagram
         canvas.width = 250;
         canvas.height = 250;
         canvas.style.width = '250px';
         canvas.style.height = '250px';
     } else {
-        // Desktop
         canvas.width = 200;
         canvas.height = 200;
         canvas.style.width = '200px';
         canvas.style.height = '200px';
     }
     
-    // Set initial canvas background
     ctx.fillStyle = '#FFF9F0';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.lineWidth = 12;
@@ -687,27 +708,23 @@ setupCanvas();
 let drawing = false;
 let currentColor = "#c43a3a";
 let hasDrawing = false;
-let loadedDrawingIds = new Set(); // Track which drawings we've loaded
+let loadedDrawingIds = new Set();
+let currentDeletionId = null;
 
 function selectColor(color, element) {
     currentColor = color;
-    
-    // Remove selected class from all color dots
     document.querySelectorAll('.color-dot').forEach(dot => {
         dot.classList.remove('selected');
     });
-    
-    // Add selected class to clicked color dot
     element.classList.add('selected');
 }
 
-// Enhanced touch/mouse events for Instagram
+// Instagram-proof event handling
 canvas.addEventListener("mousedown", startDrawing);
 canvas.addEventListener("mouseup", stopDrawing);
 canvas.addEventListener("mouseout", stopDrawing);
 canvas.addEventListener("mousemove", draw);
 
-// More aggressive touch event handling for Instagram
 canvas.addEventListener("touchstart", handleTouchStart, { passive: false });
 canvas.addEventListener("touchmove", handleTouchMove, { passive: false });
 canvas.addEventListener("touchend", handleTouchEnd, { passive: false });
@@ -719,7 +736,6 @@ function startDrawing(e) {
     ctx.beginPath();
     const pos = getMousePos(e);
     ctx.moveTo(pos.x, pos.y);
-    draw(e);
 }
 
 function stopDrawing() {
@@ -732,7 +748,6 @@ function draw(e) {
     e.preventDefault();
     
     const pos = getMousePos(e);
-    
     ctx.strokeStyle = currentColor;
     ctx.lineTo(pos.x, pos.y);
     ctx.stroke();
@@ -751,7 +766,6 @@ function getMousePos(e) {
         y = e.clientY - rect.top;
     }
     
-    // Scale coordinates for high DPI displays
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
     
@@ -761,48 +775,27 @@ function getMousePos(e) {
     };
 }
 
-// Touch event handlers with Instagram fixes
 function handleTouchStart(e) {
     e.preventDefault();
-    drawing = true;
-    hasDrawing = true;
-    ctx.beginPath();
-    const touch = e.touches[0];
-    const mouseEvent = new MouseEvent("mousedown", {
-        clientX: touch.clientX,
-        clientY: touch.clientY,
-        bubbles: true
-    });
-    canvas.dispatchEvent(mouseEvent);
+    startDrawing(e);
 }
 
 function handleTouchMove(e) {
     e.preventDefault();
-    const touch = e.touches[0];
-    const mouseEvent = new MouseEvent("mousemove", {
-        clientX: touch.clientX,
-        clientY: touch.clientY,
-        bubbles: true
-    });
-    canvas.dispatchEvent(mouseEvent);
+    draw(e);
 }
 
 function handleTouchEnd(e) {
     e.preventDefault();
-    const mouseEvent = new MouseEvent("mouseup", {
-        bubbles: true
-    });
-    canvas.dispatchEvent(mouseEvent);
+    stopDrawing();
 }
 
-// Clear canvas function
 function clearCanvas() {
     ctx.fillStyle = '#FFF9F0';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     hasDrawing = false;
 }
 
-// Check if canvas is blank
 function isCanvasBlank() {
     const blank = document.createElement('canvas');
     blank.width = canvas.width;
@@ -810,15 +803,12 @@ function isCanvasBlank() {
     const blankCtx = blank.getContext('2d');
     blankCtx.fillStyle = '#FFF9F0';
     blankCtx.fillRect(0, 0, blank.width, blank.height);
-    
     return canvas.toDataURL() === blank.toDataURL();
 }
 
-// Type text with pauses
 function typeWithPauses() {
     const toolTitle = document.getElementById('toolTitle');
     const message = "That's not a drawing. Try again?";
-    
     toolTitle.innerHTML = '';
     
     let i = 0;
@@ -836,11 +826,8 @@ function typeWithPauses() {
     type();
 }
 
-// Show adding message and replace button text
 function showAddingMessage() {
     const addButton = document.getElementById('addButton');
-    
-    // Replace button text with "Adding..."
     addButton.textContent = "Adding...";
     addButton.disabled = true;
     addButton.style.opacity = '0.7';
@@ -855,7 +842,6 @@ function showAddingMessage() {
         if (dots < maxDots) {
             setTimeout(animateDots, 500);
         } else {
-            // Restore original button text and re-enable
             setTimeout(() => {
                 addButton.textContent = "🐟 Add to Pond";
                 addButton.disabled = false;
@@ -863,52 +849,28 @@ function showAddingMessage() {
             }, 500);
         }
     }
-    
     animateDots();
 }
 
-// Get random position within the pond boundaries - FIXED for Instagram
-function getRandomPondPosition() {
-    // Much tighter boundaries for Instagram
-    const pondArea = {
-        left: 20,    // Increased for Instagram
-        right: 80,   // Reduced for Instagram  
-        top: 25,     // Increased for Instagram
-        bottom: 75   // Reduced for Instagram
-    };
-    
-    return {
-        x: Math.random() * (pondArea.right - pondArea.left) + pondArea.left,
-        y: Math.random() * (pondArea.bottom - pondArea.top) + pondArea.top
-    };
-}
-
-// Generate unique ID for each drawing
 function generateDrawingId() {
     return 'drawing_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
 
-// ADD TO POND
+// INSTAGRAM-PROOF ADD TO POND
 async function addToPond() {
-    // Check if canvas is blank
     if (isCanvasBlank()) {
         typeWithPauses();
         return;
     }
     
-    // Show adding message
     showAddingMessage();
     
-    // Create a temporary canvas to extract only the drawing
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = canvas.width;
     tempCanvas.height = canvas.height;
     const tempCtx = tempCanvas.getContext('2d');
-    
-    // Fill with transparent background
     tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
     
-    // Create a white background to compare against
     const whiteCanvas = document.createElement('canvas');
     whiteCanvas.width = canvas.width;
     whiteCanvas.height = canvas.height;
@@ -916,24 +878,18 @@ async function addToPond() {
     whiteCtx.fillStyle = '#FFF9F0';
     whiteCtx.fillRect(0, 0, whiteCanvas.width, whiteCanvas.height);
     
-    // Get image data from both canvases
     const originalData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const whiteData = whiteCtx.getImageData(0, 0, whiteCanvas.width, whiteCanvas.height);
-    
-    // Create new image data for transparent background
     const newData = tempCtx.createImageData(canvas.width, canvas.height);
     
-    // Compare pixels and only keep non-white pixels
     for (let i = 0; i < originalData.data.length; i += 4) {
         const r1 = originalData.data[i];
         const g1 = originalData.data[i + 1];
         const b1 = originalData.data[i + 2];
-        
         const r2 = whiteData.data[i];
         const g2 = whiteData.data[i + 1];
         const b2 = whiteData.data[i + 2];
         
-        // If pixel is different from white background, keep it
         if (r1 !== r2 || g1 !== g2 || b1 !== b2) {
             newData.data[i] = r1;
             newData.data[i + 1] = g1;
@@ -943,13 +899,15 @@ async function addToPond() {
     }
     
     tempCtx.putImageData(newData, 0, 0);
-    
     const imgData = tempCanvas.toDataURL('image/png');
     
     let items = JSON.parse(localStorage.getItem('pondItems') || '[]');
     
-    // Get position within the pond boundaries
-    const position = getRandomPondPosition();
+    // Use Instagram-safe positioning if in Instagram
+    const position = isInstagramBrowser() ? getInstagramSafePosition() : {
+        x: Math.random() * 60 + 20,
+        y: Math.random() * 50 + 25
+    };
     
     const newItem = {
         id: generateDrawingId(),
@@ -961,13 +919,9 @@ async function addToPond() {
     
     items.push(newItem);
     localStorage.setItem('pondItems', JSON.stringify(items));
-    
     clearCanvas();
-    
-    // Add the new drawing immediately
     addSingleDrawing(newItem);
     
-    // On mobile, hide tools and show pond after adding
     if (window.innerWidth <= 768) {
         setTimeout(() => {
             hideDrawingTools();
@@ -975,14 +929,10 @@ async function addToPond() {
     }
 }
 
-// Add a single drawing to the pond - ENHANCED for Instagram
+// INSTAGRAM-PROOF DELETION SYSTEM
 function addSingleDrawing(item) {
     const container = document.getElementById("pondDrawings");
-    
-    // Check if drawing already exists to prevent duplicates
-    if (loadedDrawingIds.has(item.id)) {
-        return;
-    }
+    if (loadedDrawingIds.has(item.id)) return;
     
     let img = document.createElement("img");
     img.src = item.img;
@@ -992,60 +942,88 @@ function addSingleDrawing(item) {
     img.style.pointerEvents = 'auto';
     img.style.cursor = 'pointer';
     
-    // Enhanced deletion for Instagram - more reliable touch handling
-    let tapCount = 0;
-    let lastTapTime = 0;
-    let tapTimeout;
+    // Instagram-proof deletion - Use long press instead of triple tap
+    let pressTimer;
+    let isLongPress = false;
     
-    function handleDeletionTap(e) {
+    function startPress(e) {
         e.preventDefault();
         e.stopPropagation();
-        
-        const currentTime = new Date().getTime();
-        const timeDiff = currentTime - lastTapTime;
-        
-        // Reset if too much time passed
-        if (timeDiff > 1000) {
-            tapCount = 0;
-        }
-        
-        tapCount++;
-        lastTapTime = currentTime;
-        
-        // Clear any existing timeout
-        if (tapTimeout) clearTimeout(tapTimeout);
-        
-        // Set timeout to reset counter
-        tapTimeout = setTimeout(() => {
-            tapCount = 0;
-        }, 1000);
-        
-        if (tapCount >= 3) {
-            deleteDrawing(item.id);
-            tapCount = 0;
-            if (tapTimeout) clearTimeout(tapTimeout);
-        }
+        isLongPress = false;
+        pressTimer = setTimeout(() => {
+            isLongPress = true;
+            showDeletionDialog(item.id);
+        }, 800); // 800ms long press
     }
     
-    // Add both click and touch events for maximum compatibility
-    img.addEventListener('click', handleDeletionTap);
-    img.addEventListener('touchstart', handleDeletionTap, { passive: false });
+    function endPress(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        clearTimeout(pressTimer);
+    }
+    
+    // Use both click and touch events
+    img.addEventListener('mousedown', startPress);
+    img.addEventListener('mouseup', endPress);
+    img.addEventListener('mouseleave', endPress);
+    
+    img.addEventListener('touchstart', startPress, { passive: false });
+    img.addEventListener('touchend', endPress, { passive: false });
+    img.addEventListener('touchcancel', endPress, { passive: false });
+    
+    // Also keep triple tap as backup for non-Instagram
+    if (!isInstagramBrowser()) {
+        let tapCount = 0;
+        let lastTapTime = 0;
+        
+        img.addEventListener('click', function(e) {
+            const currentTime = new Date().getTime();
+            if (currentTime - lastTapTime > 1000) {
+                tapCount = 0;
+            }
+            tapCount++;
+            lastTapTime = currentTime;
+            
+            if (tapCount >= 3) {
+                e.preventDefault();
+                e.stopPropagation();
+                deleteDrawing(item.id);
+                tapCount = 0;
+            }
+        });
+    }
     
     container.appendChild(img);
     loadedDrawingIds.add(item.id);
 }
 
-// Delete drawing by ID
+function showDeletionDialog(id) {
+    currentDeletionId = id;
+    document.getElementById('deletionOverlay').style.display = 'flex';
+}
+
+function confirmDeletion() {
+    if (currentDeletionId) {
+        deleteDrawing(currentDeletionId);
+    }
+    cancelDeletion();
+}
+
+function cancelDeletion() {
+    currentDeletionId = null;
+    document.getElementById('deletionOverlay').style.display = 'none';
+}
+
 function deleteDrawing(id) {
     let items = JSON.parse(localStorage.getItem('pondItems') || '[]');
     items = items.filter(item => item.id !== id);
     localStorage.setItem('pondItems', JSON.stringify(items));
     
-    // Remove from pond display
     const img = document.querySelector(`img[data-id="${id}"]`);
     if (img) {
-        img.style.transition = 'opacity 0.3s';
+        img.style.transition = 'opacity 0.3s, transform 0.3s';
         img.style.opacity = '0';
+        img.style.transform = 'translate(-50%, -50%) scale(0)';
         setTimeout(() => {
             img.remove();
         }, 300);
@@ -1054,35 +1032,29 @@ function deleteDrawing(id) {
     loadedDrawingIds.delete(id);
 }
 
-// LOAD POND ITEMS - Only load new items
 async function loadPondItems() {
     const items = JSON.parse(localStorage.getItem('pondItems') || '[]');
     const container = document.getElementById("pondDrawings");
-    
-    // Find new items that haven't been loaded yet
     const newItems = items.filter(item => !loadedDrawingIds.has(item.id));
     
     if (newItems.length > 0) {
         newItems.forEach((item, index) => {
             setTimeout(() => {
                 addSingleDrawing(item);
-            }, index * 400); // Stagger the pop-up animations
+            }, index * 400);
         });
     }
 }
 
-// REAL-TIME SYNC FUNCTION
 function syncDrawings() {
     const items = JSON.parse(localStorage.getItem('pondItems') || '[]');
     const container = document.getElementById("pondDrawings");
-    
-    // Get current displayed drawing IDs
     const currentDisplayedIds = new Set();
+    
     container.querySelectorAll('img[data-id]').forEach(img => {
         currentDisplayedIds.add(img.getAttribute('data-id'));
     });
     
-    // Remove drawings that are no longer in localStorage
     container.querySelectorAll('img[data-id]').forEach(img => {
         const id = img.getAttribute('data-id');
         const existsInStorage = items.some(item => item.id === id);
@@ -1092,7 +1064,6 @@ function syncDrawings() {
         }
     });
     
-    // Add drawings that are in localStorage but not displayed
     items.forEach(item => {
         if (!currentDisplayedIds.has(item.id)) {
             addSingleDrawing(item);
@@ -1100,52 +1071,34 @@ function syncDrawings() {
     });
 }
 
-// Mobile functionality
 function showDrawingTools() {
-    const toolsSection = document.getElementById('toolsSection');
-    const mobileButtons = document.getElementById('mobileButtons');
-    const pondSection = document.getElementById('pondSection');
-    
-    toolsSection.classList.add('mobile-visible');
-    mobileButtons.classList.add('hidden');
-    pondSection.classList.add('hidden');
+    document.getElementById('toolsSection').classList.add('mobile-visible');
+    document.getElementById('mobileButtons').classList.add('hidden');
+    document.getElementById('pondSection').classList.add('hidden');
 }
 
 function hideDrawingTools() {
-    const toolsSection = document.getElementById('toolsSection');
-    const mobileButtons = document.getElementById('mobileButtons');
-    const pondSection = document.getElementById('pondSection');
-    
-    toolsSection.classList.remove('mobile-visible');
-    mobileButtons.classList.remove('hidden');
-    pondSection.classList.remove('hidden');
+    document.getElementById('toolsSection').classList.remove('mobile-visible');
+    document.getElementById('mobileButtons').classList.remove('hidden');
+    document.getElementById('pondSection').classList.remove('hidden');
 }
 
-// Handle window resize - FIXED for Instagram
-window.addEventListener('resize', function() {
-    setupCanvas();
-});
+window.addEventListener('resize', setupCanvas);
 
-// Initialize
 document.addEventListener('DOMContentLoaded', function() {
     setupCanvas();
     loadPondItems();
 });
 
-// Enhanced real-time updates - check for changes every second
 setInterval(syncDrawings, 1000);
 
-// Also sync when the page becomes visible again
 document.addEventListener('visibilitychange', function() {
-    if (!document.hidden) {
-        syncDrawings();
-    }
+    if (!document.hidden) syncDrawings();
 });
 
-// Sync when window gains focus
 window.addEventListener('focus', syncDrawings);
 
-// Prevent Instagram from interfering with touch events
+// Instagram-proof touch prevention
 document.addEventListener('touchstart', function(e) {
     if (e.target.tagName === 'IMG' && e.target.parentElement.id === 'pondDrawings') {
         e.stopPropagation();
@@ -1157,12 +1110,6 @@ document.addEventListener('touchmove', function(e) {
         e.preventDefault();
     }
 }, { passive: false });
-
-document.addEventListener('touchend', function(e) {
-    if (e.target.tagName === 'IMG' && e.target.parentElement.id === 'pondDrawings') {
-        e.stopPropagation();
-    }
-}, true);
 </script>
 </body>
 </html>
