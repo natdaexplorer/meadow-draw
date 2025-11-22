@@ -1,3 +1,36 @@
+// Error handling for API failures
+async function checkAPIHealth() {
+  try {
+    const response = await fetch('/api/drawings');
+    if (!response.ok) {
+      console.error('API is not responding properly');
+      // Fallback to localStorage if API fails
+      return false;
+    }
+    return true;
+  } catch (error) {
+    console.error('API connection failed:', error);
+    return false;
+  }
+}
+
+// Modify your fetchDrawings function to have a fallback:
+async function fetchDrawings() {
+  try {
+    const apiHealthy = await checkAPIHealth();
+    if (!apiHealthy) {
+      // Fallback to localStorage
+      return JSON.parse(localStorage.getItem('pondItems') || '[]');
+    }
+    
+    const response = await fetch(`${API_BASE}/drawings`);
+    if (!response.ok) throw new Error('Failed to fetch');
+    return await response.json();
+  } catch (error) {
+    console.error('Failed to fetch drawings, using localStorage fallback:', error);
+    return JSON.parse(localStorage.getItem('pondItems') || '[]');
+  }
+}
 <script>
 // API Base URL - Use relative paths for Vercel
 const API_BASE = '/api';
