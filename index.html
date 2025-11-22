@@ -81,11 +81,11 @@ h1 {
 
 .drawing-container img {
     position: absolute;
-    width: 80px;
-    border: 2px solid black;
-    border-radius: 12px;
+    width: 60px;
+    /* REMOVED border and border-radius */
     transform: translate(-50%, -50%) scale(0);
-    animation: pop 0.8s ease-out forwards;
+    animation: pop 0.8s ease-out forwards, float-with-pond 4s ease-in-out infinite;
+    /* Drawings now float with the pond */
 }
 
 @keyframes pop {
@@ -100,6 +100,15 @@ h1 {
     100% {
         transform: translate(-50%, -50%) scale(1);
         opacity: 1;
+    }
+}
+
+@keyframes float-with-pond {
+    0%, 100% {
+        transform: translate(-50%, -50%) translateY(0);
+    }
+    50% {
+        transform: translate(-50%, -50%) translateY(-10px);
     }
 }
 
@@ -320,7 +329,7 @@ button:hover {
     }
     
     .drawing-container img {
-        width: 60px;
+        width: 50px;
     }
     
     .tools-section {
@@ -378,11 +387,6 @@ button:hover {
     .mobile-main-button:hover {
         transform: scale(1.02);
         background: #e8f4ea;
-    }
-    
-    /* Hide desktop gallery link on mobile */
-    .gallery-link {
-        display: none;
     }
     
     /* Show tools when mobile main button is clicked */
@@ -596,6 +600,7 @@ setupCanvas();
 let drawing = false;
 let currentColor = "#c43a3a";
 let hasDrawing = false;
+let lastLoadedTimestamp = 0; // Track when we last loaded drawings
 
 function selectColor(color, element) {
     currentColor = color;
@@ -769,6 +774,22 @@ function showAddingMessage() {
     animateDots();
 }
 
+// Get random position within the light blue pond area
+function getRandomPondPosition() {
+    // These coordinates represent the light blue area of the pond
+    const pondArea = {
+        left: 20,   // 20% from left edge of pond
+        right: 80,  // 80% from left edge of pond  
+        top: 25,    // 25% from top edge of pond
+        bottom: 75  // 75% from top edge of pond
+    };
+    
+    return {
+        x: Math.random() * (pondArea.right - pondArea.left) + pondArea.left,
+        y: Math.random() * (pondArea.bottom - pondArea.top) + pondArea.top
+    };
+}
+
 // ADD TO POND - Improved to capture only drawing
 async function addToPond() {
     // Check if canvas is blank
@@ -830,50 +851,67 @@ async function addToPond() {
     
     let items = JSON.parse(localStorage.getItem('pondItems') || '[]');
     
-    // Calculate positions within the light blue pond area
-    const pondArea = {
-        left: 15,
-        right: 85,
-        top: 20,
-        bottom: 80
+    // Get position within the light blue pond area
+    const position = getRandomPondPosition();
+    
+    const newItem = {
+        img: imgData,
+        x: position.x,
+        y: position.y,
+        timestamp: Date.now()
     };
     
-    items.push({
-        img: imgData,
-        x: Math.random() * (pondArea.right - pondArea.left) + pondArea.left, 
-        y: Math.random() * (pondArea.bottom - pondArea.top) + pondArea.top,
-        timestamp: Date.now()
-    });
+    items.push(newItem);
     localStorage.setItem('pondItems', JSON.stringify(items));
     
     clearCanvas();
+    
+    // Update last loaded timestamp to prevent re-pop
+    lastLoadedTimestamp = Date.now();
+    
+    // Add the new drawing immediately
+    addSingleDrawing(newItem);
     
     // On mobile, hide tools and show pond after adding
     if (window.innerWidth <= 768) {
         setTimeout(() => {
             hideDrawingTools();
-            loadPondItems();
         }, 1000);
-    } else {
-        loadPondItems();
     }
 }
 
-// LOAD POND ITEMS - Live updates
+// Add a single drawing to the pond
+function addSingleDrawing(item) {
+    const container = document.getElementById("pondDrawings");
+    let img = document.createElement("img");
+    img.src = item.img;
+    img.style.left = item.x + "%";
+    img.style.top = item.y + "%";
+    container.appendChild(img);
+}
+
+// LOAD POND ITEMS - Only load new items
 async function loadPondItems() {
     const items = JSON.parse(localStorage.getItem('pondItems') || '[]');
     const container = document.getElementById("pondDrawings");
-    container.innerHTML = "";
-
-    items.forEach((item, i) => {
-        setTimeout(() => {
+    
+    // Only update if there are new items
+    const latestTimestamp = items.length > 0 ? Math.max(...items.map(item => item.timestamp)) : 0;
+    
+    if (latestTimestamp > lastLoadedTimestamp) {
+        // Clear and reload all drawings
+        container.innerHTML = "";
+        
+        items.forEach((item) => {
             let img = document.createElement("img");
             img.src = item.img;
             img.style.left = item.x + "%";
             img.style.top = item.y + "%";
             container.appendChild(img);
-        }, i * 400);
-    });
+        });
+        
+        lastLoadedTimestamp = latestTimestamp;
+    }
 }
 
 // Mobile functionality
@@ -900,15 +938,13 @@ function hideDrawingTools() {
 // Handle window resize
 window.addEventListener('resize', function() {
     setupCanvas();
-    loadPondItems();
 });
 
-// Initialize and set up live updates
+// Initialize
 loadPondItems();
 
-// Live updates - reload pond items every 2 seconds to see new drawings
+// Live updates - check for new drawings every 2 seconds
 setInterval(loadPondItems, 2000);
 </script>
-
 </body>
 </html>
