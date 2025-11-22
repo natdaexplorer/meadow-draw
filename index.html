@@ -65,6 +65,19 @@ h1 {
     border-bottom: 1px solid #ffc107;
 }
 
+/* Loading Spinner */
+.loading-spinner {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(255, 255, 255, 0.9);
+    padding: 20px;
+    border-radius: 10px;
+    z-index: 1000;
+}
+
 /* Main Content - Desktop */
 .main-content {
     display: flex;
@@ -499,6 +512,11 @@ button:hover {
     .adding-message {
         font-size: 14px;
     }
+    
+    /* Show Instagram warning on mobile */
+    .instagram-warning {
+        display: block;
+    }
 }
 
 @media (max-width: 480px) {
@@ -578,6 +596,11 @@ button:hover {
     ⚠️ For best experience, open in Safari/Chrome
 </div>
 
+<!-- Loading Spinner -->
+<div class="loading-spinner" id="loadingSpinner">
+    ⏳ Loading pond...
+</div>
+
 <!-- Header -->
 <div class="header">
     <h1>Nat's Pondering Pond</h1>
@@ -650,6 +673,9 @@ const firebaseConfig = {
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
+
+// Image Cache
+const imageCache = new Map();
 
 // Detect Instagram browser - ONLY show warning in Instagram
 function isInstagramBrowser() {
@@ -882,30 +908,61 @@ function getRandomPondPosition(existingItems = []) {
     };
 }
 
-// FIREBASE FUNCTIONS - SIMPLIFIED
+// FIREBASE FUNCTIONS - WITH LAZY LOADING AND CACHE
 async function loadPondItems() {
+    showLoadingSpinner();
+    
     try {
         const snapshot = await db.collection('drawings').get();
-        const container = document.getElementById("pondDrawings");
-        
+        const items = [];
         snapshot.forEach(doc => {
-            const item = doc.data();
+            items.push(doc.data());
+        });
+        
+        // LAZY LOADING: Load drawings gradually
+        loadDrawingsLazily(items);
+        
+    } catch (error) {
+        console.error('Error loading drawings:', error);
+        hideLoadingSpinner();
+    }
+}
+
+function loadDrawingsLazily(drawings) {
+    const BATCH_SIZE = 3; // Load 3 drawings at a time
+    const DELAY = 300; // 300ms between batches
+    
+    let currentIndex = 0;
+    
+    function loadNextBatch() {
+        const batch = drawings.slice(currentIndex, currentIndex + BATCH_SIZE);
+        
+        batch.forEach(item => {
             if (!loadedDrawingIds.has(item.id)) {
                 addSingleDrawing(item);
             }
         });
-    } catch (error) {
-        console.error('Error loading drawings:', error);
+        
+        currentIndex += BATCH_SIZE;
+        
+        if (currentIndex < drawings.length) {
+            setTimeout(loadNextBatch, DELAY);
+        } else {
+            hideLoadingSpinner();
+        }
     }
+    
+    loadNextBatch();
 }
 
-// Real-time listener for new drawings - SIMPLIFIED
+// Real-time listener for new drawings
 function setupRealTimeListener() {
     db.collection('drawings').onSnapshot((snapshot) => {
         snapshot.docChanges().forEach((change) => {
             if (change.type === 'added') {
                 const item = change.doc.data();
                 if (!loadedDrawingIds.has(item.id)) {
+                    // Add new drawings immediately (not lazy loaded)
                     addSingleDrawing(item);
                 }
             }
@@ -960,7 +1017,9 @@ async function addToPond() {
     }
     
     tempCtx.putImageData(newData, 0, 0);
-    const imgData = tempCanvas.toDataURL('image/png');
+    
+    // COMPRESSION: Use JPEG with 80% quality for smaller file size
+    const imgData = tempCanvas.toDataURL('image/jpeg', 0.8);
     
     // Get existing items for collision detection
     const existingItems = [];
@@ -977,7 +1036,7 @@ async function addToPond() {
         img: imgData,
         x: position.x,
         y: position.y,
-        timestamp: Date.now() // Use client timestamp instead of server timestamp
+        timestamp: Date.now()
     };
     
     try {
@@ -994,13 +1053,22 @@ async function addToPond() {
     }
 }
 
-// Add a single drawing to the pond
+// Add a single drawing to the pond WITH CACHE
 function addSingleDrawing(item) {
     const container = document.getElementById("pondDrawings");
     if (loadedDrawingIds.has(item.id)) return;
     
-    let img = document.createElement("img");
-    img.src = item.img;
+    // CACHE: Check if image is already cached
+    let img;
+    if (imageCache.has(item.id)) {
+        img = imageCache.get(item.id).cloneNode();
+    } else {
+        img = document.createElement("img");
+        img.src = item.img;
+        // CACHE: Store in cache for future use
+        imageCache.set(item.id, img.cloneNode());
+    }
+    
     img.style.left = item.x + "%";
     img.style.top = item.y + "%";
     img.setAttribute('data-id', item.id);
@@ -1048,6 +1116,8 @@ function removeDrawingFromDisplay(id) {
         }, 300);
     }
     loadedDrawingIds.delete(id);
+    // Remove from cache too
+    imageCache.delete(id);
 }
 
 async function deleteDrawing(id) {
@@ -1056,6 +1126,14 @@ async function deleteDrawing(id) {
     } catch (error) {
         console.error('Error deleting drawing:', error);
     }
+}
+
+function showLoadingSpinner() {
+    document.getElementById('loadingSpinner').style.display = 'block';
+}
+
+function hideLoadingSpinner() {
+    document.getElementById('loadingSpinner').style.display = 'none';
 }
 
 function showDrawingTools() {
