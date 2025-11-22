@@ -28,8 +28,7 @@ body {
 }
 
 .header {
-    padding: 20px 0;
-    position: relative;
+    padding: 20px 0 10px 0; /* Reduced bottom padding */
 }
 
 h1 {
@@ -43,7 +42,7 @@ h1 {
 .count {
     font-size: 18px;
     color: #1f4d2d;
-    margin: 0 0 30px 0;
+    margin: 0 0 15px 0; /* Reduced margin */
     opacity: 0.8;
 }
 
@@ -52,7 +51,7 @@ h1 {
     align-items: center;
     gap: 8px;
     padding: 10px 20px;
-    margin: 20px 0;
+    margin: 0 0 15px 0; /* Reduced margin */
     text-decoration: none;
     color: #1f4d2d;
     border: 2px solid #1f4d2d;
@@ -66,25 +65,29 @@ h1 {
     transform: translateY(-2px);
 }
 
-/* Pagination Controls - Mobile */
+/* Compact Pagination Controls - Mobile */
 .pagination-controls {
     display: none; /* Hidden on desktop by default */
     justify-content: center;
     align-items: center;
-    gap: 30px;
-    margin: 20px 0;
+    gap: 20px; /* Reduced gap */
+    margin: 10px 0 15px 0; /* Reduced margins */
     padding: 0 20px;
+    height: 40px; /* Fixed compact height */
 }
 
 .pagination-btn {
     background: none;
     border: none;
-    font-size: 24px;
+    font-size: 20px; /* Smaller font */
     color: #1f4d2d;
     cursor: pointer;
-    padding: 10px 15px;
+    padding: 8px 12px; /* Reduced padding */
     transition: all 0.3s;
     opacity: 0.7;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .pagination-btn:hover {
@@ -99,12 +102,13 @@ h1 {
 }
 
 .pagination-info {
-    font-size: 16px;
+    font-size: 14px; /* Smaller font */
     color: #1f4d2d;
     font-weight: bold;
+    min-width: 80px; /* Fixed width */
 }
 
-/* Triangle buttons */
+/* Smaller triangle buttons */
 .triangle-left, .triangle-right {
     width: 0;
     height: 0;
@@ -113,12 +117,12 @@ h1 {
 }
 
 .triangle-left {
-    border-width: 15px 20px 15px 0;
+    border-width: 10px 14px 10px 0; /* Smaller triangles */
     border-color: transparent #1f4d2d transparent transparent;
 }
 
 .triangle-right {
-    border-width: 15px 0 15px 20px;
+    border-width: 10px 0 10px 14px; /* Smaller triangles */
     border-color: transparent transparent transparent #1f4d2d;
 }
 
@@ -128,7 +132,7 @@ h1 {
     gap: 20px;
     max-width: 1200px;
     margin: 0 auto;
-    padding: 20px;
+    padding: 10px 20px; /* Reduced top padding */
 }
 
 .gallery-item {
@@ -203,38 +207,53 @@ h1 {
     .gallery-container {
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     }
+    
+    .gallery-item img {
+        height: 120px;
+    }
 }
 
-/* Mobile Styles with Pagination */
+/* Mobile Styles with Compact Pagination */
 @media (max-width: 768px) {
     body {
-        padding: 10px;
+        padding: 10px 5px; /* Reduced side padding */
     }
     
     h1 {
         font-size: 28px;
+        margin: 0 0 8px 0; /* Reduced margin */
     }
     
     .count {
         font-size: 16px;
+        margin: 0 0 12px 0; /* Reduced margin */
+    }
+    
+    .back-link {
+        margin: 0 0 12px 0; /* Reduced margin */
+        padding: 8px 16px; /* Smaller button */
+        font-size: 14px;
     }
     
     .pagination-controls {
         display: flex; /* Show pagination on mobile */
+        margin: 8px 0 12px 0; /* Tight margins */
+        gap: 15px; /* Tighter gap */
+        height: 35px; /* Even more compact */
     }
     
     .gallery-container {
-        grid-template-columns: repeat(3, 1fr); /* 3 columns for 12 items (3x4 grid) */
-        gap: 10px;
-        padding: 10px;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px; /* Slightly larger gap for bigger images */
+        padding: 5px 10px; /* Reduced padding */
     }
     
     .gallery-item {
-        padding: 8px;
+        padding: 12px; /* More padding for larger appearance */
     }
     
     .gallery-item img {
-        height: 80px;
+        height: 100px; /* Larger images on mobile */
     }
 }
 
@@ -244,24 +263,33 @@ h1 {
     }
     
     .gallery-container {
-        grid-template-columns: repeat(3, 1fr); /* Keep 3 columns */
-        gap: 8px;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+    }
+    
+    .gallery-item {
+        padding: 10px;
     }
     
     .gallery-item img {
-        height: 70px;
+        height: 90px; /* Maintain good size */
     }
     
     .pagination-controls {
-        gap: 20px;
+        gap: 12px;
+        height: 32px;
+    }
+    
+    .pagination-info {
+        font-size: 13px;
     }
     
     .triangle-left, .triangle-right {
-        border-width: 12px 16px 12px 0;
+        border-width: 8px 12px 8px 0; /* Even smaller */
     }
     
     .triangle-right {
-        border-width: 12px 0 12px 16px;
+        border-width: 8px 0 8px 12px; /* Even smaller */
     }
 }
 
@@ -282,7 +310,7 @@ body {
         <div class="count" id="drawingCount">Loading...</div>
         <a href="index.html" class="back-link">← Back to Pond</a>
         
-        <!-- Pagination Controls - Positioned beneath Back button -->
+        <!-- Compact Pagination Controls -->
         <div class="pagination-controls">
             <button class="pagination-btn" id="prevPage" disabled>
                 <div class="triangle-left"></div>
