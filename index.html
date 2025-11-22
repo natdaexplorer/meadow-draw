@@ -260,10 +260,15 @@ button:hover {
     .header {
         padding: 10px 0;
         flex-shrink: 0;
+        height: 15vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     
     h1 {
         font-size: 28px;
+        margin: 0;
     }
     
     .main-content {
@@ -275,6 +280,7 @@ button:hover {
         width: 100%;
         position: relative;
         overflow: hidden;
+        height: 85vh;
     }
     
     .pond-section {
@@ -283,7 +289,8 @@ button:hover {
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 10px;
+        padding: 0;
+        height: 60vh;
     }
     
     .pond-wrapper {
@@ -298,7 +305,7 @@ button:hover {
         max-width: 90%;
         width: auto;
         height: auto;
-        max-height: 50vh;
+        max-height: 100%;
         object-fit: contain;
     }
     
@@ -322,7 +329,7 @@ button:hover {
         justify-content: center;
     }
     
-    /* Mobile buttons container - positioned at bottom */
+    /* Mobile buttons container - positioned BELOW pond */
     .mobile-buttons-container {
         display: flex;
         flex-direction: column;
@@ -331,11 +338,9 @@ button:hover {
         max-width: 300px;
         margin: 0 auto;
         flex-shrink: 0;
-        padding: 0 20px 20px 20px;
-        position: absolute;
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
+        padding: 20px;
+        height: 25vh;
+        justify-content: center;
     }
     
     .mobile-main-button {
@@ -448,7 +453,6 @@ button:hover {
     
     .pond {
         max-width: 95%;
-        max-height: 45vh;
     }
 }
 
@@ -769,7 +773,7 @@ async function addToPond() {
     loadPondItems();
 }
 
-// LOAD POND ITEMS
+// LOAD POND ITEMS - Live updates
 async function loadPondItems() {
     const items = JSON.parse(localStorage.getItem('pondItems') || '[]');
     const container = document.getElementById("pondDrawings");
@@ -783,7 +787,7 @@ async function loadPondItems() {
             img.style.top = item.y + "%";
             img.style.animationDelay = `${(i % 5) * 0.2}s`;
             container.appendChild(img);
-        }, i * 300); // Slightly longer delay for better pop-up effect
+        }, i * 300);
     });
 }
 
@@ -814,8 +818,11 @@ window.addEventListener('resize', function() {
     loadPondItems();
 });
 
-// Initialize
+// Initialize and set up live updates
 loadPondItems();
+
+// Live updates - reload pond items every 2 seconds to see new drawings
+setInterval(loadPondItems, 2000);
 </script>
 
 </body>
