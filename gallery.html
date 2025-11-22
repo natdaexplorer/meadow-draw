@@ -2,260 +2,207 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Gallery of Lost & Found</title>
+<title>Gallery of Lost & Found - Nat's Pondering Pond</title>
 <link href="https://fonts.googleapis.com/css2?family=Delius&display=swap" rel="stylesheet">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 <style>
+* {
+    box-sizing: border-box;
+}
+
 body {
     font-family: "Delius", cursive;
     background: #FFF9F0;
-    padding: 30px;
+    margin: 0;
+    padding: 20px;
     text-align: center;
+    min-height: 100vh;
+}
+
+.header {
+    padding: 20px 0;
 }
 
 h1 {
-    font-size: 48px;
+    font-size: 36px;
     color: #1f4d2d;
-    margin-bottom: 10px;
+    margin: 0 0 10px 0;
+    text-align: center;
+    font-weight: bold;
 }
 
-#itemCount {
-    font-size: 26px;
-    margin-bottom: 30px;
+.subtitle {
+    font-size: 18px;
     color: #1f4d2d;
+    margin: 0 0 30px 0;
+    opacity: 0.8;
 }
 
-.gallery-grid {
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    margin: 20px 0;
+    text-decoration: none;
+    color: #1f4d2d;
+    border: 2px solid #1f4d2d;
+    border-radius: 8px;
+    background: #FFF9F0;
+    transition: all 0.3s;
+}
+
+.back-link:hover {
+    background: #e8f4ea;
+    transform: translateY(-2px);
+}
+
+.gallery-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, 180px);
-    gap: 25px;
-    justify-content: center;
-    margin-bottom: 60px;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
 }
 
 .gallery-item {
     background: white;
-    padding: 12px;
     border-radius: 12px;
-    border: 2px solid #1f4d2d;
-    transition: transform 0.2s;
-    position: relative;
-    overflow: hidden;
+    padding: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    transition: transform 0.3s, box-shadow 0.3s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
 }
 
 .gallery-item:hover {
-    transform: scale(1.03);
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
 }
 
 .gallery-item img {
-    width: 160px;
-    height: 160px;
+    width: 100%;
+    height: 120px;
     object-fit: contain;
-    border-radius: 8px;
+    margin-bottom: 10px;
 }
 
-.back-link {
-    position: fixed;
-    bottom: 30px;
-    left: 30px;
-    padding: 10px 16px;
-    font-size: 18px;
-    text-decoration: none;
-    border: 3px solid #1f4d2d;
-    border-radius: 12px;
-    background: #FFF9F0;
+.empty-gallery {
+    grid-column: 1 / -1;
+    padding: 60px 20px;
     color: #1f4d2d;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    transition: transform 0.2s, background 0.3s;
+    opacity: 0.7;
 }
 
-.back-link:hover {
-    transform: scale(1.05);
-    background: #e8f4ea;
+.empty-gallery h2 {
+    font-size: 24px;
+    margin: 0 0 10px 0;
 }
 
-.empty-message {
-    font-size: 28px;
-    color: #666;
-    margin: 40px 0;
+.empty-gallery p {
+    font-size: 16px;
+    margin: 0;
+    opacity: 0.8;
 }
 
-/* Mobile Styles for Gallery */
+/* Mobile Styles */
 @media (max-width: 768px) {
     body {
-        padding: 20px;
+        padding: 10px;
     }
     
     h1 {
-        font-size: 36px;
+        font-size: 28px;
     }
     
-    #itemCount {
-        font-size: 22px;
+    .subtitle {
+        font-size: 16px;
     }
     
-    .gallery-grid {
-        grid-template-columns: repeat(auto-fill, 150px);
-        gap: 20px;
+    .gallery-container {
+        grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        gap: 15px;
+        padding: 10px;
+    }
+    
+    .gallery-item {
+        padding: 10px;
     }
     
     .gallery-item img {
-        width: 130px;
-        height: 130px;
+        height: 100px;
+    }
+}
+
+@media (max-width: 480px) {
+    h1 {
+        font-size: 24px;
     }
     
-    .back-link {
-        position: static;
-        margin-top: 20px;
-        display: inline-block;
+    .gallery-container {
+        grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+        gap: 10px;
+    }
+    
+    .gallery-item img {
+        height: 80px;
     }
 }
 </style>
 </head>
 
 <body>
+    <div class="header">
+        <h1>Gallery of Lost & Found</h1>
+        <div class="subtitle">All the treasures that found their way to our pond</div>
+        <a href="index.html" class="back-link">← Back to Pond</a>
+    </div>
 
-<h1>Gallery of Lost & Found</h1>
-<div id="itemCount">Number of Items: 0</div>
+    <div class="gallery-container" id="galleryContainer">
+        <!-- Gallery items will be loaded here -->
+    </div>
 
-<div id="galleryGrid" class="gallery-grid"></div>
-
-<a href="index.html" class="back-link">← Back to Pond</a>
-
-<script>
-// Track loaded drawing IDs
-let loadedGalleryIds = new Set();
-
-// Load gallery items
-async function loadGallery() {
-    const items = JSON.parse(localStorage.getItem('pondItems') || '[]');
-    
-    document.getElementById("itemCount").innerText = "Number of Items: " + items.length;
-
-    const grid = document.getElementById("galleryGrid");
-    
-    // Clear and reload all items to ensure sync
-    grid.innerHTML = '';
-    loadedGalleryIds.clear();
-
-    if (items.length === 0) {
-        grid.innerHTML = '<div class="empty-message">The gallery is empty. Add some drawings to the pond first!</div>';
-        return;
-    }
-
-    // Load all items with staggered animation
-    items.forEach((item, index) => {
-        setTimeout(() => {
-            const box = document.createElement("div");
-            box.className = "gallery-item";
-            box.setAttribute('data-id', item.id);
-            
-            box.innerHTML = `
-                <img src="${item.img}" alt="User drawing">
+    <script>
+    function loadGalleryItems() {
+        const container = document.getElementById('galleryContainer');
+        const items = JSON.parse(localStorage.getItem('pondItems') || '[]');
+        
+        // Clear container
+        container.innerHTML = '';
+        
+        if (items.length === 0) {
+            container.innerHTML = `
+                <div class="empty-gallery">
+                    <h2>The Pond is Empty</h2>
+                    <p>No drawings have been added yet. Go back to the pond and create something!</p>
+                </div>
             `;
-            
-            // Add click handler for desktop deletion (3 clicks)
-            if (window.innerWidth > 768) {
-                let clickCount = 0;
-                box.addEventListener('click', function() {
-                    clickCount++;
-                    if (clickCount >= 3) {
-                        deleteItem(item.id);
-                        clickCount = 0;
-                    }
-                });
-            }
-            
-            // Add touch events for mobile swipe detection
-            setupSwipeDetection(box, item.id);
-            grid.appendChild(box);
-            loadedGalleryIds.add(item.id);
-        }, index * 300);
-    });
-}
-
-// Setup swipe detection for gallery items
-function setupSwipeDetection(element, id) {
-    let startX = 0;
-    let currentX = 0;
-    let isSwiping = false;
-    let swipeCount = 0;
-    
-    element.addEventListener('touchstart', (e) => {
-        startX = e.touches[0].clientX;
-        isSwiping = true;
-    });
-    
-    element.addEventListener('touchmove', (e) => {
-        if (!isSwiping) return;
-        currentX = e.touches[0].clientX;
-        
-        // Calculate swipe distance
-        const swipeDistance = Math.abs(currentX - startX);
-        
-        // If swipe is significant, count it
-        if (swipeDistance > 50) {
-            // Reset position for next swipe
-            startX = currentX;
-            
-            // Increment swipe count
-            swipeCount++;
-            
-            // Visual feedback (subtle)
-            element.style.transform = `scale(${1 - (swipeCount * 0.05)})`;
-            
-            // Check if reached required swipes
-            if (swipeCount >= 3) {
-                deleteItem(id);
-            }
+            return;
         }
-    });
-    
-    element.addEventListener('touchend', () => {
-        isSwiping = false;
-        // Reset transform after a delay
-        setTimeout(() => {
-            if (swipeCount < 3) {
-                element.style.transform = 'scale(1)';
-            }
-        }, 300);
-    });
-}
-
-// Delete item function
-async function deleteItem(id) {
-    let items = JSON.parse(localStorage.getItem('pondItems') || '[]');
-    
-    // Remove the item
-    items = items.filter(item => item.id !== id);
-    localStorage.setItem('pondItems', JSON.stringify(items));
-    
-    // Remove from loaded IDs
-    loadedGalleryIds.delete(id);
-    
-    // Remove from DOM
-    const element = document.querySelector(`[data-id="${id}"]`);
-    if (element) {
-        element.remove();
+        
+        // Sort by timestamp (newest first)
+        items.sort((a, b) => b.timestamp - a.timestamp);
+        
+        // Add all items at once without animation
+        items.forEach(item => {
+            const galleryItem = document.createElement('div');
+            galleryItem.className = 'gallery-item';
+            galleryItem.innerHTML = `
+                <img src="${item.img}" alt="Pond Drawing">
+                <small>${new Date(item.timestamp).toLocaleDateString()}</small>
+            `;
+            container.appendChild(galleryItem);
+        });
     }
-    
-    // Update count
-    document.getElementById("itemCount").innerText = "Number of Items: " + items.length;
-    
-    // Show empty message if no items left
-    if (items.length === 0) {
-        document.getElementById("galleryGrid").innerHTML = '<div class="empty-message">The gallery is empty. Add some drawings to the pond first!</div>';
-    }
-}
 
-// Auto-refresh gallery every 2 seconds to show new drawings
-setInterval(loadGallery, 2000);
+    // Load gallery when page loads
+    document.addEventListener('DOMContentLoaded', loadGalleryItems);
 
-// Initial load
-loadGallery();
-</script>
+    // Update gallery if items change while page is open
+    window.addEventListener('storage', loadGalleryItems);
+    window.addEventListener('focus', loadGalleryItems);
+    </script>
 </body>
 </html>
