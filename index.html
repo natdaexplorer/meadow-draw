@@ -1,46 +1,4 @@
-// Temporary: Always show the page even if API fails
-window.addEventListener('load', function() {
-  // Force show the pond section
-  const pondSection = document.getElementById('pondSection');
-  const mobileButtons = document.getElementById('mobileButtons');
-  
-  if (pondSection) {
-    pondSection.style.display = 'block';
-  }
-  if (mobileButtons) {
-    mobileButtons.style.display = 'block';
-  }
-  
-  // Load initial drawings from localStorage as fallback
-  setTimeout(() => {
-    const items = JSON.parse(localStorage.getItem('pondItems') || '[]');
-    if (items.length > 0) {
-      loadPondItems();
-    }
-  }, 1000);
-});
-
-// Modify your fetchDrawings function to have a fallback:
-async function fetchDrawings() {
-  try {
-    const apiHealthy = await checkAPIHealth();
-    if (!apiHealthy) {
-      // Fallback to localStorage
-      return JSON.parse(localStorage.getItem('pondItems') || '[]');
-    }
-    
-    const response = await fetch(`${API_BASE}/drawings`);
-    if (!response.ok) throw new Error('Failed to fetch');
-    return await response.json();
-  } catch (error) {
-    console.error('Failed to fetch drawings, using localStorage fallback:', error);
-    return JSON.parse(localStorage.getItem('pondItems') || '[]');
-  }
-}
 <script>
-// API Base URL - Use relative paths for Vercel
-const API_BASE = '/api';
-
 // DRAWING LOGIC
 const canvas = document.getElementById("draw-area");
 const ctx = canvas.getContext("2d");
@@ -68,49 +26,26 @@ let drawing = false;
 let currentColor = "#c43a3a";
 let hasDrawing = false;
 let loadedDrawingIds = new Set();
+let lastSyncTime = 0;
 
-// API functions - UPDATED FOR CORRECT PATHS
-async function fetchDrawings() {
-    try {
-        const response = await fetch(`${API_BASE}/drawings`);
-        if (!response.ok) throw new Error('Failed to fetch');
-        return await response.json();
-    } catch (error) {
-        console.error('Failed to fetch drawings:', error);
-        return [];
-    }
+// Enhanced localStorage with sync
+function getPondItems() {
+    return JSON.parse(localStorage.getItem('pondItems') || '[]');
 }
 
-async function saveDrawing(drawingData) {
-    try {
-        const response = await fetch(`${API_BASE}/drawings/add`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(drawingData)
-        });
-        return await response.json();
-    } catch (error) {
-        console.error('Failed to save drawing:', error);
-        return { success: false };
-    }
+function savePondItems(items) {
+    localStorage.setItem('pondItems', JSON.stringify(items));
+    // Update sync timestamp
+    localStorage.setItem('lastUpdate', Date.now().toString());
 }
 
-async function deleteDrawingFromServer(id) {
-    try {
-        const response = await fetch(`${API_BASE}/drawings/delete`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ id })
-        });
-        return await response.json();
-    } catch (error) {
-        console.error('Failed to delete drawing:', error);
-        return { success: false };
-    }
+// Cross-tab synchronization
+function setupCrossTabSync() {
+    window.addEventListener('storage', function(e) {
+        if (e.key === 'pondItems' || e.key === 'lastUpdate') {
+            setTimeout(loadPondItems, 100);
+        }
+    });
 }
 
 function selectColor(color, element) {
@@ -121,6 +56,7 @@ function selectColor(color, element) {
     element.classList.add('selected');
 }
 
+// ... (keep all your existing drawing functions - they're fine)
 // Mouse events for desktop
 canvas.addEventListener("mousedown", startDrawing);
 canvas.addEventListener("mouseup", stopDrawing);
@@ -285,7 +221,7 @@ function generateDrawingId() {
     return 'drawing_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 }
 
-// ADD TO POND - UPDATED FOR KV DATABASE
+// ADD TO POND
 async function addToPond() {
     if (isCanvasBlank()) {
         typeWithPauses();
@@ -331,6 +267,8 @@ async function addToPond() {
     
     tempCtx.putImageData(newData, 0, 0);
     const imgData = tempCanvas.toDataURL('image/png');
+    
+    let items = getPondItems();
     const position = getRandomPondPosition();
     
     const newItem = {
@@ -341,24 +279,27 @@ async function addToPond() {
         timestamp: Date.now()
     };
     
-    // Save to KV database instead of localStorage
-    const result = await saveDrawing(newItem);
+    items.push(newItem);
+    savePondItems(items);
     
-    if (result.success) {
-        clearCanvas();
-        addSingleDrawing(newItem);
-        
-        if (window.innerWidth <= 768) {
-            setTimeout(() => {
-                hideDrawingTools();
-            }, 1500);
-        }
+    clearCanvas();
+    
+    // Add the new drawing immediately
+    addSingleDrawing(newItem);
+    
+    // On mobile, hide tools and show pond after adding
+    if (window.innerWidth <= 768) {
+        setTimeout(() => {
+            hideDrawingTools();
+        }, 1500);
     }
 }
 
+// Add a single drawing to the pond
 function addSingleDrawing(item) {
     const container = document.getElementById("pondDrawings");
     
+    // Check if drawing already exists to prevent duplicates
     if (loadedDrawingIds.has(item.id)) {
         return;
     }
@@ -369,6 +310,7 @@ function addSingleDrawing(item) {
     img.style.top = item.y + "%";
     img.setAttribute('data-id', item.id);
     
+    // Add click handler for desktop deletion (3 clicks)
     if (window.innerWidth > 768) {
         let clickCount = 0;
         img.addEventListener('click', function() {
@@ -384,45 +326,50 @@ function addSingleDrawing(item) {
     loadedDrawingIds.add(item.id);
 }
 
-async function deleteDrawing(id) {
-    const result = await deleteDrawingFromServer(id);
+// Delete drawing by ID
+function deleteDrawing(id) {
+    let items = getPondItems();
+    items = items.filter(item => item.id !== id);
+    savePondItems(items);
     
-    if (result.success) {
-        const img = document.querySelector(`img[data-id="${id}"]`);
-        if (img) {
-            img.remove();
-        }
-        loadedDrawingIds.delete(id);
+    // Remove from pond display
+    const img = document.querySelector(`img[data-id="${id}"]`);
+    if (img) {
+        img.remove();
     }
+    
+    loadedDrawingIds.delete(id);
 }
 
-// LOAD POND ITEMS - UPDATED FOR KV DATABASE
+// LOAD POND ITEMS - Only load new items
 async function loadPondItems() {
-    const items = await fetchDrawings();
+    const items = getPondItems();
     const container = document.getElementById("pondDrawings");
     
+    // Find new items that haven't been loaded yet
     const newItems = items.filter(item => !loadedDrawingIds.has(item.id));
     
     if (newItems.length > 0) {
         newItems.forEach((item, index) => {
             setTimeout(() => {
                 addSingleDrawing(item);
-            }, index * 400);
+            }, index * 400); // Stagger the pop-up animations
         });
     }
 }
 
-// REAL-TIME SYNC - UPDATED FOR KV DATABASE
-async function syncDrawings() {
-    const items = await fetchDrawings();
+// Enhanced real-time sync between tabs
+function syncDrawings() {
+    const items = getPondItems();
     const container = document.getElementById("pondDrawings");
     
+    // Get current displayed drawing IDs
     const currentDisplayedIds = new Set();
     container.querySelectorAll('img[data-id]').forEach(img => {
         currentDisplayedIds.add(img.getAttribute('data-id'));
     });
     
-    // Remove drawings that are no longer in database
+    // Remove drawings that are no longer in localStorage
     container.querySelectorAll('img[data-id]').forEach(img => {
         const id = img.getAttribute('data-id');
         const existsInStorage = items.some(item => item.id === id);
@@ -432,7 +379,7 @@ async function syncDrawings() {
         }
     });
     
-    // Add drawings that are in database but not displayed
+    // Add drawings that are in localStorage but not displayed
     items.forEach(item => {
         if (!currentDisplayedIds.has(item.id)) {
             addSingleDrawing(item);
@@ -440,6 +387,7 @@ async function syncDrawings() {
     });
 }
 
+// Mobile functionality
 function showDrawingTools() {
     const toolsSection = document.getElementById('toolsSection');
     const mobileButtons = document.getElementById('mobileButtons');
@@ -460,19 +408,25 @@ function hideDrawingTools() {
     pondSection.classList.remove('hidden');
 }
 
-window.addEventListener('resize', setupCanvas);
+// Handle window resize
+window.addEventListener('resize', function() {
+    setupCanvas();
+});
 
 // Initialize
+setupCrossTabSync();
 loadPondItems();
 
-// Real-time sync
-setInterval(syncDrawings, 2000);
+// Enhanced real-time updates - check for changes every second
+setInterval(syncDrawings, 1000);
 
+// Also sync when the page becomes visible again
 document.addEventListener('visibilitychange', function() {
     if (!document.hidden) {
         syncDrawings();
     }
 });
 
+// Sync when window gains focus
 window.addEventListener('focus', syncDrawings);
 </script>
